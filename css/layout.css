@@ -8,3 +8,25 @@
 #rec-canvas-mapa-usuario {
   cursor: crosshair;
 }
+
+#rec-canvas-mapa-real, #rec-canvas-mapa-usuario,
+#fp-canvas-mapa-real, #fp-canvas-mapa-usuario {
+  cursor: crosshair;
+}
+
+.grilla-diccionario { display: flex; flex-wrap: wrap; gap: 12px; }
+.celda-diccionario { text-align: center; width: 130px; }
+.celda-diccionario canvas { border: 1px solid #666; }
+.grilla-diccionario-interactiva {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+#dic-canvas-mapa, #dic-canvas-patron {
+  width: 320px;
+  height: 320px;
+  image-rendering: pixelated;
+}
+#dic-canvas-mapa {
+  cursor: crosshair;
+}

@@ -78,8 +78,18 @@
 
     <!-- ============ MODO 2: DICCIONARIO ============ -->
     <section id="modo-diccionario" class="modo" hidden>
-      <p>Cada celda muestra qué forma tiene esa zona del mapa de Fourier.</p>
-      <div id="dic-grilla" class="grilla-diccionario"></div>
+    <p>Pasá el mouse (o tocá, en el celular) sobre el mapa. A la derecha se arma en vivo el patrón que representa ese punto.</p>
+    <div class="grilla-diccionario-interactiva">
+        <div class="celda-canvas">
+        <h3>Mapa de frecuencias (u, v)</h3>
+        <canvas id="dic-canvas-mapa" width="128" height="128"></canvas>
+        </div>
+        <div class="celda-canvas">
+        <h3>Patrón de ese punto</h3>
+        <canvas id="dic-canvas-patron" width="128" height="128"></canvas>
+        <p id="dic-texto-descripcion">Centro del mapa: sin textura.</p>
+        </div>
+    </div>
     </section>
 
     <!-- ============ MODO 3: FOTO + PATRÓN ============ -->
