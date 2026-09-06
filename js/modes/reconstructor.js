@@ -11,15 +11,27 @@ import { fft2d, desplazarEspectro } from '../core/fft.js';
 import {generarRayas, generarTablero, generarCirculos, generarPatronDeFrecuencia, describirFrecuencia} from '../core/patterns.js';
 import {pintarGrises, pintarGrisesEscalado, calcularEscalaLog, pintarLogEscalado} from '../ui/canvasRenderer.js';
 import { mostrarTooltip, ocultarTooltip } from '../ui/tooltip.js';
+import {crearEstadoMascara, cargarCoeficientes,alternarFrecuencia, aplicarRadio, reconstruirDesdeMascara,
+  calcularContador, deshacer, reiniciar, coordenadasDesdeEvento} from '../core/mascaraFourier.js';
 
 
+// Tamaño de la imagen (potencia de 2 para la FFT)
 const N = 128;
-const HISTORIA_MAXIMA = 50;
-
 
 /**
  * Obtiene referencias a todos los elementos del DOM necesarios para este modo.
- * @returns {Object} Objeto con propiedades descriptivas para cada elemento.
+ *
+ * @returns {Object} Objeto con propiedades:
+ *   - inputFoto: input[type=file]
+ *   - canvasOriginal: canvas para la imagen original
+ *   - canvasMapaReal: canvas para el espectro real
+ *   - canvasReconstruccion: canvas para la imagen reconstruida
+ *   - canvasMapaUsuario: canvas para el mapa de frecuencias del usuario
+ *   - botonRayasV, botonRayasH, botonRayasD, botonTablero, botonCirculos: botones de patrones
+ *   - sliderRadio, sliderRadioValor: control de radio circular
+ *   - contadorEnergia: elemento para mostrar estadísticas
+ *   - botonDeshacer, botonReiniciar: botones de control
+ *   - tooltip, tooltipCanvas, tooltipTexto: elementos del tooltip
  */
 function obtenerElementos() {
   return {
@@ -44,250 +56,113 @@ function obtenerElementos() {
   };
 }
 
-
 /**
- * Crea el estado inicial del modo reconstructor.
- * @returns {Object} Estado con todos los arrays y variables necesarias.
- */
-function estadoInicial() {
-  return {
-    reFourier: null,
-    imFourier: null,
-    logsReal: null,
-    maxReal: 0, 
-    mascara: new Float64Array(N * N),
-    historia: [],
-  };
-}
-
-// UTILIDADES: COORDENADAS PANTALLA ↔ GRID DE PÍXELES
-
-/**
- * Obtiene las coordenadas (x, y) en la grilla N×N a partir de un evento del ratón.
- * @param {MouseEvent} evento - Evento del ratón (mousemove o click).
- * @param {HTMLCanvasElement} canvas - Canvas donde ocurrió el evento.
- * @returns {{xShift: number, yShift: number}} Coordenadas en la grilla centrada.
- */
-function coordenadasDesdeEvento(evento, canvas) {
-  const rect = canvas.getBoundingClientRect();
-  const xCss = evento.clientX - rect.left;
-  const yCss = evento.clientY - rect.top;
-  const x = Math.min(N - 1, Math.max(0, Math.floor((xCss / rect.width) * N)));
-  const y = Math.min(N - 1, Math.max(0, Math.floor((yCss / rect.height) * N)));
-  return { xShift: x, yShift: y };
-}
-
-/**
- * Convierte coordenadas del mapa centrado (FFT Shift) a las coordenadas
- * originales del espectro (sin desplazar).
- * @param {number} xShift - Coordenada X en el mapa centrado.
- * @param {number} yShift - Coordenada Y en el mapa centrado.
- * @returns {{xRaw: number, yRaw: number}} Coordenadas en el espectro crudo.
- */
-function shiftedARaw(xShift, yShift) {
-  const half = N / 2;
-  return {
-    xRaw: (xShift - half + N) % N,
-    yRaw: (yShift - half + N) % N,
-  };
-}
-
-
-// HISTORIAL (DESHACER / REINICIAR)
-
-
-/**
- * Guarda una copia de la máscara actual en el historial.
- * @param {Object} estado - Estado del modo.
- */
-function guardarHistoria(estado) {
-  estado.historia.push(estado.mascara.slice());
-  if (estado.historia.length > HISTORIA_MAXIMA) estado.historia.shift();
-}
-
-
-// LÓGICA PRINCIPAL: ALTERNAR FRECUENCIAS, APLICAR RADIO, RECONSTRUIR
-
-
-/**
- * Alterna el estado (activado/desactivado) de una frecuencia y su simétrica.
- * @param {number} xShift - Coordenada X en el mapa centrado.
- * @param {number} yShift - Coordenada Y en el mapa centrado.
- * @param {Object} estado - Estado del modo.
- */
-function alternarFrecuencia(xShift, yShift, estado) {
-  guardarHistoria(estado);
-  const { xRaw, yRaw } = shiftedARaw(xShift, yShift);
-  const indice = yRaw * N + xRaw;
-  const indiceSimetrico = ((N - yRaw) % N) * N + ((N - xRaw) % N);
-
-  const nuevoValor = estado.mascara[indice] ? 0 : 1;
-  estado.mascara[indice] = nuevoValor;
-  estado.mascara[indiceSimetrico] = nuevoValor;
-}
-
-/**
- * Activa todas las frecuencias dentro de un radio dado desde el centro.
- * @param {Object} estado - Estado del modo.
- * @param {number} radio - Radio en píxeles desde el centro.
- */
-function aplicarRadio(estado, radio) {
-  guardarHistoria(estado);
-  const half = N / 2;
-  for (let yShift = 0; yShift < N; yShift++) {
-    for (let xShift = 0; xShift < N; xShift++) {
-      const u = xShift - half;
-      const v = yShift - half;
-      const { xRaw, yRaw } = shiftedARaw(xShift, yShift);
-      estado.mascara[yRaw * N + xRaw] = Math.hypot(u, v) <= radio ? 1 : 0;
-    }
-  }
-}
-
-/**
- * Reconstruye la imagen a partir de las frecuencias activas en la máscara.
- * @param {Object} estado - Estado del modo.
- * @returns {Float64Array} Imagen reconstruida (valores de gris 0-255).
- */
-function reconstruirDesdeMascara(estado) {
-  const re = new Float64Array(N * N);
-  const im = new Float64Array(N * N);
-  for (let i = 0; i < N * N; i++) {
-    re[i] = estado.reFourier[i] * estado.mascara[i];
-    im[i] = estado.imFourier[i] * estado.mascara[i];
-  }
-  fft2d(re, im, N, true);
-
-  const grises = new Float64Array(N * N);
-  for (let i = 0; i < N * N; i++) {
-    grises[i] = Math.min(255, Math.max(0, re[i]));
-  }
-  return grises;
-}
-
-/**
- * Calcula cuántas frecuencias están activas y qué porcentaje de energía representan.
- * @param {Object} estado - Estado del modo.
- * @returns {{activos: number, porcentaje: number}} Número de frecuencias activas y porcentaje de energía.
- */
-function calcularContador(estado) {
-  let activos = 0;
-  let energiaActiva = 0;
-  let energiaTotal = 0;
-  for (let i = 0; i < N * N; i++) {
-    const energia = estado.reFourier[i] ** 2 + estado.imFourier[i] ** 2;
-    energiaTotal += energia;
-    if (estado.mascara[i]) {
-      activos++;
-      energiaActiva += energia;
-    }
-  }
-  const porcentaje = energiaTotal > 0 ? (energiaActiva / energiaTotal) * 100 : 0;
-  return { activos, porcentaje };
-}
-
-// REFRESCAR TODAS LAS VISTAS DEPENDIENTES DE LA MÁSCARA
-
-/**
- * Actualiza el mapa del usuario, la reconstrucción y el contador de energía.
- * @param {Object} elementos - Objeto con referencias a elementos del DOM.
- * @param {Object} estado - Estado del modo.
+ * Actualiza todos los elementos visuales que dependen de la máscara actual:
+ * - El mapa del usuario (frecuencias activas resaltadas)
+ * - La imagen reconstruida
+ * - El contador de energía
+ *
+ * @param {Object} elementos - Objeto con referencias a los canvas y elementos de texto.
+ * @param {Object} estado - Estado de la máscara
+ * @returns {void}
  */
 function refrescarTodo(elementos, estado) {
-  // Actualiza el mapa del usuario (frecuencias activas)
+  // Pinta el mapa del usuario
   const mascaraCentrada = desplazarEspectro(estado.mascara, N);
   const logsUsuario = new Float64Array(N * N);
   for (let i = 0; i < N * N; i++) {
+    // Si la frecuencia está activa, pintamos su valor logarítmico; si no, 0 (negro)
     logsUsuario[i] = mascaraCentrada[i] ? estado.logsReal[i] : 0;
   }
   pintarLogEscalado(elementos.canvasMapaUsuario, logsUsuario, estado.maxReal, N);
 
-  //Reconstruiye y pinta la imagen
-  pintarGrises(elementos.canvasReconstruccion, reconstruirDesdeMascara(estado), N);
+  // Recontruye y pinta la imagen con las frecuencias activas
+  const imagenReconstruida = reconstruirDesdeMascara(estado, N);
+  pintarGrises(elementos.canvasReconstruccion, imagenReconstruida, N);
 
   //Actualiza el contador de energía
-  const { activos, porcentaje } = calcularContador(estado);
+  const { activos, porcentaje } = calcularContador(estado, N);
   elementos.contadorEnergia.textContent =
     `${activos} de ${N * N} frecuencias activas — ${porcentaje.toFixed(1)}% de la energía capturada`;
 }
 
-// CARGAR UNA IMAGEN NUEVA (FOTO O PATRÓN)
-
-
 /**
- * Carga una imagen en el visualizador, calcula su FFT y reinicia el estado.
- * @param {Float64Array} grises - Array de N*N valores en [0, 255].
- * @param {Object} elementos - Objeto con referencias a elementos del DOM.
- * @param {Object} estado - Estado del modo.
+ * Carga una nueva imagen (en grises), calcula su FFT, actualiza el mapa real y resetea la máscara
+ *
+ * @param {Float64Array} grises - Array plano de N*N valores en [0, 255].
+ * @param {Object} elementos - Referencias a los elementos del DOM.
+ * @param {Object} estado - Estado de la máscara.
+ * @returns {void}
  */
 function actualizarDesdeGrises(grises, elementos, estado) {
+  //Pinta la imagen original
   pintarGrises(elementos.canvasOriginal, grises, N);
 
-  const re = grises.slice();
-  const im = new Float64Array(N * N);
-  fft2d(re, im, N, false);
-  estado.reFourier = re;
-  estado.imFourier = im;
+  //Carga los coeficientes de Fourier en el estado
+  cargarCoeficientes(estado, grises, N);
 
+  //Calcula la magnitud y la centra
   const magnitudes = new Float64Array(N * N);
   for (let i = 0; i < N * N; i++) {
-    magnitudes[i] = Math.hypot(re[i], im[i]);
+    magnitudes[i] = Math.hypot(estado.reFourier[i], estado.imFourier[i]);
   }
   const magnitudesCentradas = desplazarEspectro(magnitudes, N);
 
+  //Escala logarítmica para visualización
   const { logs, max } = calcularEscalaLog(magnitudesCentradas, N);
   estado.logsReal = logs;
   estado.maxReal = max;
+
+  // Pinta el mapa real
   pintarLogEscalado(elementos.canvasMapaReal, logs, max, N);
 
-  estado.mascara = new Float64Array(N * N);
-  estado.historia = [];
+  //Resetea el slider de radio a 0
   elementos.sliderRadio.value = 0;
   elementos.sliderRadioValor.textContent = '0';
 
+  //Refresca todo lo que depende de la máscara (reconstrucción, mapa usuario, contador)
   refrescarTodo(elementos, estado);
 }
 
-// TOOLTIP: MOSTRAR ONDA PURA Y DESCRIPCIÓN DE LA FRECUENCIA
-
-
 /**
- * Maneja el evento de hover sobre los mapas: muestra un tooltip con la onda pura.
- * @param {MouseEvent} evento - Evento del ratón (mousemove).
+ * Maneja el evento hover sobre el mapa de frecuencias: muestra un tooltip
+ * con la forma de onda de la frecuencia señalada y su descripción.
+ *
+ * @param {MouseEvent} evento - Evento del ratón.
  * @param {HTMLCanvasElement} canvas - Canvas donde ocurrió el evento.
- * @param {Object} elementos - Objeto con referencias a elementos del DOM.
+ * @param {Object} elementos - Referencias a los elementos del tooltip.
+ * @returns {void}
  */
 function manejarHover(evento, canvas, elementos) {
-  const { xShift, yShift } = coordenadasDesdeEvento(evento, canvas);
+  // Obteniene coordenadas en el mapa centrado
+  const { xShift, yShift } = coordenadasDesdeEvento(evento, canvas, N);
   const u = xShift - N / 2;
   const v = yShift - N / 2;
 
-  //Genera la onda pura para esta frecuencia
+  // Genera el patrón de frecuencia pura para esta coordenada
   const patron = generarPatronDeFrecuencia(u, v, N);
   pintarGrisesEscalado(elementos.tooltipCanvas, patron, N);
 
-  //Actualiza el texto del tooltip
-  elementos.tooltipTexto.textContent =
-    `(u=${u}, v=${v}) — ${describirFrecuencia(u, v, N)}`;
+  // Actualiza el texto del tooltip
+  elementos.tooltipTexto.textContent = `(u=${u}, v=${v}) — ${describirFrecuencia(u, v, N)}`;
 
-  //Muestra el tooltip en la posición del ratón
+  // Muestra el tooltip en la posición del cursor
   mostrarTooltip(elementos, evento.pageX, evento.pageY);
 }
 
-// ----------------------------------------------------------------
-// INICIALIZACIÓN DEL MODO
-// ----------------------------------------------------------------
-
 /**
- * Inicializa el modo reconstructor: asigna eventos, configura el estado
- * y carga un patrón inicial.
+ * Inicializa el modo Reconstructor: asigna eventos a todos los elementos y carga un patrón inicial
+ *
+ * @returns {void}
  */
 export function iniciarReconstructor() {
-  // Obteniene referencias a los elementos del DOM
+  //Obteniene referencias a los elementos del DOM con nombres descriptivos
   const elementos = obtenerElementos();
-  const estado = estadoInicial();
 
-  //cargamos imagen
+  //Crea el estado de la máscara (inicialmente vacío)
+  const estado = crearEstadoMascara(N);
+
+  //Evento: cargar imagen desde archivo
   elementos.inputFoto.addEventListener('change', async (evento) => {
     const archivo = evento.target.files[0];
     if (!archivo) return;
@@ -295,7 +170,7 @@ export function iniciarReconstructor() {
     actualizarDesdeGrises(grises, elementos, estado);
   });
 
-  //Botones de patrones
+  // Eventos: botones de patrones
   elementos.botonRayasV.addEventListener('click', () =>
     actualizarDesdeGrises(generarRayas(N, 'vertical', 8), elementos, estado)
   );
@@ -312,46 +187,43 @@ export function iniciarReconstructor() {
     actualizarDesdeGrises(generarCirculos(N, 6), elementos, estado)
   );
 
-  // Click en el mapa del usuario: activar/desactivar frecuencias
+  //Evento: clic en el mapa del usuario para alternar frecuencias
   elementos.canvasMapaUsuario.addEventListener('click', (evento) => {
-    if (!estado.reFourier) return;
-    const { xShift, yShift } = coordenadasDesdeEvento(evento, elementos.canvasMapaUsuario);
-    alternarFrecuencia(xShift, yShift, estado);
+    if (!estado.reFourier) return; // Aún no hay imagen cargada
+    const { xShift, yShift } = coordenadasDesdeEvento(evento, elementos.canvasMapaUsuario, N);
+    alternarFrecuencia(estado, xShift, yShift, N);
     refrescarTodo(elementos, estado);
   });
 
-  //Slider de radio: activar frecuencias por radio
+  // Evento: slider de radio circular
   elementos.sliderRadio.addEventListener('input', (evento) => {
     if (!estado.reFourier) return;
     const radio = Number(evento.target.value);
     elementos.sliderRadioValor.textContent = radio;
-    aplicarRadio(estado, radio);
+    aplicarRadio(estado, radio, N);
     refrescarTodo(elementos, estado);
   });
 
-  //Botón deshacer
+  //Evento: botón Deshacer
   elementos.botonDeshacer.addEventListener('click', () => {
-    if (estado.historia.length === 0) return;
-    estado.mascara = estado.historia.pop();
-    refrescarTodo(elementos, estado);
+    if (deshacer(estado)) {
+      refrescarTodo(elementos, estado);
+    }
   });
 
-  //Botón reiniciar
+  // Evento: botón Reiniciar
   elementos.botonReiniciar.addEventListener('click', () => {
     if (!estado.reFourier) return;
-    guardarHistoria(estado);
-    estado.mascara = new Float64Array(N * N);
+    reiniciar(estado, N);
     refrescarTodo(elementos, estado);
   });
 
-  //Tooltips en los mapas (real y usuario)
+  //Eventos de tooltip en ambos mapas (real y usuario)
   [elementos.canvasMapaReal, elementos.canvasMapaUsuario].forEach((canvas) => {
-    canvas.addEventListener('mousemove', (evento) =>
-      manejarHover(evento, canvas, elementos)
-    );
+    canvas.addEventListener('mousemove', (evento) => manejarHover(evento, canvas, elementos));
     canvas.addEventListener('mouseleave', () => ocultarTooltip(elementos));
   });
 
-  //Carga un patrón inicial (rayas verticales) para no empezar en negro
+  //Carga un patrón inicial (rayas verticales) para que no aparezca todo negro
   actualizarDesdeGrises(generarRayas(N, 'vertical', 8), elementos, estado);
 }
