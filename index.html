@@ -2,9 +2,136 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Fourier Explorer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Explorador de Fourier</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
 </head>
 <body>
-  <h1>hola, esto anda</h1>
+
+  <header>
+    <h1>Explorador de Mapas de Fourier 2D</h1>
+    <nav id="selector-modo">
+      <button type="button" class="boton-modo" data-modo="reconstructor">Reconstructor</button>
+      <button type="button" class="boton-modo" data-modo="diccionario">Diccionario de frecuencias</button>
+      <button type="button" class="boton-modo" data-modo="foto-patron">Foto + patrón</button>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- ============ MODO 1: RECONSTRUCTOR ============ -->
+    <section id="modo-reconstructor" class="modo">
+      <p>Subí una foto o elegí un patrón. Después tocá el mapa de abajo a la derecha para ir "prendiendo" frecuencias y ver cómo se arma la reconstrucción.</p>
+
+      <div class="controles-entrada">
+        <label>
+          Subir foto
+          <input type="file" id="rec-input-foto" accept="image/*">
+        </label>
+        <button type="button" id="rec-patron-rayas-v">Rayas verticales</button>
+        <button type="button" id="rec-patron-rayas-h">Rayas horizontales</button>
+        <button type="button" id="rec-patron-rayas-d">Rayas diagonales</button>
+        <button type="button" id="rec-patron-tablero">Tablero</button>
+        <button type="button" id="rec-patron-circulos">Círculos</button>
+      </div>
+
+      <div class="grilla-canvases">
+        <div class="celda-canvas">
+          <h3>Original</h3>
+          <canvas id="rec-canvas-original" width="128" height="128"></canvas>
+        </div>
+        <div class="celda-canvas">
+          <h3>Mapa de Fourier (real)</h3>
+          <canvas id="rec-canvas-mapa-real" width="128" height="128"></canvas>
+        </div>
+        <div class="celda-canvas">
+          <h3>Tu reconstrucción</h3>
+          <canvas id="rec-canvas-reconstruccion" width="128" height="128"></canvas>
+        </div>
+        <div class="celda-canvas">
+          <h3>Tu mapa</h3>
+          <canvas id="rec-canvas-mapa-usuario" width="128" height="128"></canvas>
+        </div>
+      </div>
+
+      <div class="panel-controles">
+        <label>
+          Activar de una el centro hasta radio
+          <input type="range" id="rec-slider-radio" min="0" max="64" value="0" step="1">
+          <output id="rec-slider-radio-valor">0</output>
+        </label>
+
+        <p id="rec-contador-energia">0 de 16384 frecuencias activas — 0% de la energía capturada</p>
+
+        <button type="button" id="rec-boton-deshacer">Deshacer</button>
+        <button type="button" id="rec-boton-reiniciar">Reiniciar mapa</button>
+      </div>
+
+      <div id="rec-tooltip" class="tooltip" hidden>
+        <canvas id="rec-tooltip-canvas" width="80" height="80"></canvas>
+        <p id="rec-tooltip-texto"></p>
+      </div>
+    </section>
+
+    <!-- ============ MODO 2: DICCIONARIO ============ -->
+    <section id="modo-diccionario" class="modo" hidden>
+      <p>Cada celda muestra qué forma tiene esa zona del mapa de Fourier.</p>
+      <div id="dic-grilla" class="grilla-diccionario"></div>
+    </section>
+
+    <!-- ============ MODO 3: FOTO + PATRÓN ============ -->
+    <section id="modo-foto-patron" class="modo" hidden>
+      <p>Sumale un patrón repetitivo a tu foto y usá el mapa para "limpiarlo".</p>
+
+      <div class="controles-entrada">
+        <label>
+          Subir foto
+          <input type="file" id="fp-input-foto" accept="image/*">
+        </label>
+        <label>
+          Patrón a mezclar
+          <select id="fp-select-patron">
+            <option value="rayas-v">Rayas verticales</option>
+            <option value="rayas-h">Rayas horizontales</option>
+            <option value="tablero">Tablero</option>
+          </select>
+        </label>
+        <label>
+          Intensidad
+          <input type="range" id="fp-slider-intensidad" min="0" max="100" value="30">
+        </label>
+      </div>
+
+      <div class="grilla-canvases">
+        <div class="celda-canvas">
+          <h3>Foto + patrón</h3>
+          <canvas id="fp-canvas-original" width="128" height="128"></canvas>
+        </div>
+        <div class="celda-canvas">
+          <h3>Mapa de Fourier (real)</h3>
+          <canvas id="fp-canvas-mapa-real" width="128" height="128"></canvas>
+        </div>
+        <div class="celda-canvas">
+          <h3>Imagen limpia</h3>
+          <canvas id="fp-canvas-reconstruccion" width="128" height="128"></canvas>
+        </div>
+        <div class="celda-canvas">
+          <h3>Tu mapa</h3>
+          <canvas id="fp-canvas-mapa-usuario" width="128" height="128"></canvas>
+        </div>
+      </div>
+
+      <div class="panel-controles">
+        <button type="button" id="fp-boton-deshacer">Deshacer</button>
+        <button type="button" id="fp-boton-reiniciar">Reiniciar mapa</button>
+      </div>
+    </section>
+
+  </main>
+
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
