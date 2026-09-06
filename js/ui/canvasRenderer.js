@@ -35,6 +35,79 @@ export function pintarGrises(canvas, datos, N) {
 }
 
 /**
+ * Dibuja un array de N×N en un canvas de tamaño diferente 
+ * escalando la imagen sin interpolación para mantener los bordes nítidos.
+ *
+ *
+ * @param {HTMLCanvasElement} canvasDestino - Canvas donde se dibuja
+ * @param {Float64Array} datos - Array de N*N valores en [0, 255].
+ * @param {number} N - Tamaño original de la imagen.
+ * @returns {void}
+ */
+export function pintarGrisesEscalado(canvasDestino, datos, N) {
+  // Crea un canvas offscreen invisible
+  const offscreen = document.createElement('canvas');
+  offscreen.width = N;
+  offscreen.height = N;
+
+  //Pinta la imagen a tamaño real en el offscreen usando pintarGrises
+  pintarGrises(offscreen, datos, N);
+
+  //Dibuja el offscreen en el canvas destino, escalándolo al tamaño de este
+  const ctx = canvasDestino.getContext('2d');
+  ctx.imageSmoothingEnabled = false; 
+  ctx.drawImage(offscreen, 0, 0, canvasDestino.width, canvasDestino.height);
+}
+
+/**
+ * Calcula la escala logarítmica de un array de magnitudes
+ *
+ * Aplica log(1 + x) a cada valor para comprimir el rango dinámico, y devuelve tanto los valores transformados como el máximo,
+ * para que dos mapas diferentes puedan compartir la misma escala y ser comparables.
+ *
+ * @param {Float64Array} magnitudes - Array de N*N valores no negativos
+ * @param {number} N - Tamaño de la imagen.
+ * @returns {{ logs: Float64Array, max: number }} - Objeto con los valores logarítmicos y el máximo.
+ */
+export function calcularEscalaLog(magnitudes, N) {
+  const logs = new Float64Array(N * N);
+  let max = 0;
+
+  //Recorre todos los elementos, aplica log(1+x) y busca el máximo
+  for (let i = 0; i < N * N; i++) {
+    logs[i] = Math.log1p(magnitudes[i]); 
+    if (logs[i] > max) max = logs[i];
+  }
+
+  return { logs, max };
+}
+
+/**
+ * Pinta valores ya en escala logarítmica usando un máximo dado
+ *
+ * Normaliza dividiendo por max, aplica corrección gamma y convierte a [0,255].
+ *
+ * @param {HTMLCanvasElement} canvas - Canvas donde dibujar.
+ * @param {Float64Array} logs - Array de N*N valores logarítmicos (de calcularEscalaLog).
+ * @param {number} max - Valor máximo de la escala logarítmica (para normalizar).
+ * @param {number} N - Tamaño de la imagen.
+ * @param {number} [gamma=0.8] - Factor de corrección gamma (<1 aclara sombras).
+ * @returns {void}
+ */
+export function pintarLogEscalado(canvas, logs, max, N, gamma = 0.8) {
+  // Crea un array de valores de gris (0-255)
+  const grises = new Float64Array(N * N);
+
+  for (let i = 0; i < N * N; i++) {
+    // Normaliza entre 0 y 1 (si max > 0)
+    const normalizado = max > 0 ? logs[i] / max : 0;
+    // Aplica gamma: elevar a la potencia gamma
+    grises[i] = Math.pow(normalizado, gamma) * 255;
+  }
+  pintarGrises(canvas, grises, N);
+}
+
+/**
  * Pinta un mapa de magnitudes de Fourier (ya centrado con desplazarEspectro) usando escala logarítmica + gamma, 
  * para que se vean tanto el pico central como el detalle fino alrededor.
  * 
@@ -46,21 +119,17 @@ export function pintarGrises(canvas, datos, N) {
  * @returns {void} No devuelve nada; modifica el canvas in-place.
  */
 
+/**
+ * Atajo para pintar directamente un array de magnitudes aplicando su propia  escala logarítmica
+ *
+ * @param {HTMLCanvasElement} canvas - Canvas donde dibujar.
+ * @param {Float64Array} magnitudes - Array de N*N magnitudes (espectro sin procesar).
+ * @param {number} N - Tamaño de la imagen.
+ * @param {number} [gamma=0.8] - Factor de corrección gamma.
+ * @returns {void}
+ */
 export function pintarMagnitudEspectro(canvas, magnitudes, N, gamma = 0.8) {
-   //Aplicamos compresión logarítmica 
-  const logs = new Float64Array(N * N);
-  let max = 0;
-  for (let i = 0; i < N * N; i++) {
-    logs[i] = Math.log1p(magnitudes[i]); // log(1+x)
-    if (logs[i] > max) max = logs[i];
-  }
+  const { logs, max } = calcularEscalaLog(magnitudes, N);
 
-  // Normalizamos y aplicamos gamma ---
-  const grises = new Float64Array(N * N);
-  for (let i = 0; i < N * N; i++) {
-    const normalizado = max > 0 ? logs[i] / max : 0;
-    grises[i] = Math.pow(normalizado, gamma) * 255;
-  }
-
-  pintarGrises(canvas, grises, N);
+  pintarLogEscalado(canvas, logs, max, N, gamma);
 }

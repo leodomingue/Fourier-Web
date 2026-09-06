@@ -1,0 +1,10 @@
+.grilla-canvases canvas {
+  width: 320px;
+  height: 320px;
+  image-rendering: pixelated;
+}
+
+#rec-canvas-mapa-real,
+#rec-canvas-mapa-usuario {
+  cursor: crosshair;
+}
