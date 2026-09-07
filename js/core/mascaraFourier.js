@@ -279,3 +279,46 @@ export function pintarConPincel(estado, xShift, yShift, radio, valor, N) {
     }
   }
 }
+
+export function aplicarPasaAltos(estado, radioInterior, N) {
+  guardarHistoria(estado);
+  const half = N / 2;
+  for (let yShift = 0; yShift < N; yShift++) {
+    for (let xShift = 0; xShift < N; xShift++) {
+      const u = xShift - half, v = yShift - half;
+      const { xRaw, yRaw } = shiftedARaw(xShift, yShift, N);
+      estado.mascara[yRaw * N + xRaw] = Math.hypot(u, v) >= radioInterior ? 1 : 0;
+    }
+  }
+}
+
+export function aplicarAnillo(estado, radioInterior, radioExterior, N) {
+  guardarHistoria(estado);
+  const half = N / 2;
+  for (let yShift = 0; yShift < N; yShift++) {
+    for (let xShift = 0; xShift < N; xShift++) {
+      const u = xShift - half, v = yShift - half;
+      const d = Math.hypot(u, v);
+      const { xRaw, yRaw } = shiftedARaw(xShift, yShift, N);
+      estado.mascara[yRaw * N + xRaw] = (d >= radioInterior && d <= radioExterior) ? 1 : 0;
+    }
+  }
+}
+
+export function aplicarAleatorio(estado, cantidad, N) {
+  guardarHistoria(estado);
+  estado.mascara = new Float64Array(N * N);
+  let activados = 0;
+  let intentos = 0;
+  while (activados < cantidad && intentos < cantidad * 50) {
+    intentos++;
+    const xRaw = Math.floor(Math.random() * N);
+    const yRaw = Math.floor(Math.random() * N);
+    const indice = yRaw * N + xRaw;
+    if (estado.mascara[indice]) continue;
+    const indiceSimetrico = ((N - yRaw) % N) * N + ((N - xRaw) % N);
+    estado.mascara[indice] = 1;
+    estado.mascara[indiceSimetrico] = 1;
+    activados++;
+  }
+}

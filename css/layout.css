@@ -1,32 +1,77 @@
-.grilla-canvases canvas {
-  width: 320px;
-  height: 320px;
-  image-rendering: pixelated;
+/* layout.css — disposición de las piezas. El look de cada componente
+   vive en components.css. */
+ 
+body {
+  padding: var(--espacio-5) var(--espacio-4);
 }
-
-#rec-canvas-mapa-real,
-#rec-canvas-mapa-usuario {
-  cursor: crosshair;
-}
-
-#rec-canvas-mapa-real, #rec-canvas-mapa-usuario,
-#fp-canvas-mapa-real, #fp-canvas-mapa-usuario {
-  cursor: crosshair;
-}
-
-.grilla-diccionario { display: flex; flex-wrap: wrap; gap: 12px; }
-.celda-diccionario { text-align: center; width: 130px; }
-.celda-diccionario canvas { border: 1px solid #666; }
-.grilla-diccionario-interactiva {
+ 
+header {
   display: flex;
-  gap: 20px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--espacio-3);
+  max-width: 1100px;
+  margin: 0 auto var(--espacio-5) auto;
+  padding-bottom: var(--espacio-4);
+  border-bottom: 1px solid var(--color-panel-borde);
+}
+ 
+#selector-modo {
+  display: flex;
+  gap: var(--espacio-2);
   flex-wrap: wrap;
 }
-#dic-canvas-mapa, #dic-canvas-patron {
-  width: 320px;
-  height: 320px;
-  image-rendering: pixelated;
+ 
+main {
+  max-width: 1100px;
+  margin: 0 auto;
 }
-#dic-canvas-mapa {
-  cursor: crosshair;
+ 
+.modo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+ 
+.controles-entrada {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espacio-4);
+  padding: var(--espacio-4);
+}
+ 
+.grilla-canvases {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* minmax(0,...) evita que el contenido "empuje" y rompa las columnas */
+  gap: var(--espacio-4);
+}
+ 
+.panel-controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-5);
+  padding: var(--espacio-4) var(--espacio-5);
+}
+ 
+.grilla-diccionario-interactiva {
+  display: flex;
+  gap: var(--espacio-4);
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+ 
+@media (max-width: 720px) {
+  body {
+    padding: var(--espacio-4) var(--espacio-3);
+  }
+  .grilla-canvases {
+    grid-template-columns: 1fr;
+  }
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }

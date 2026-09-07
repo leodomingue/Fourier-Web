@@ -12,7 +12,8 @@ import {generarRayas, generarTablero, generarCirculos, generarPatronDeFrecuencia
 import {pintarGrises, pintarGrisesEscalado, calcularEscalaLog, pintarLogEscalado} from '../ui/canvasRenderer.js';
 import { mostrarTooltip, ocultarTooltip } from '../ui/tooltip.js';
 import {crearEstadoMascara, cargarCoeficientes,alternarFrecuencia, aplicarRadio, reconstruirDesdeMascara,
-  calcularContador, deshacer, reiniciar, coordenadasDesdeEvento, guardarHistoria, obtenerValorEnPunto, pintarConPincel} 
+  calcularContador, deshacer, reiniciar, coordenadasDesdeEvento, guardarHistoria, obtenerValorEnPunto, pintarConPincel,
+  aplicarPasaAltos, aplicarAnillo, aplicarAleatorio,} 
   from '../core/mascaraFourier.js';
 
 
@@ -56,6 +57,14 @@ function obtenerElementos() {
     tooltipTexto: document.getElementById('rec-tooltip-texto'),
     sliderPincel: document.getElementById('rec-slider-pincel'),
     sliderPincelValor: document.getElementById('rec-slider-pincel-valor'),
+    botonPasaAltos: document.getElementById('rec-boton-pasaaltos'),
+    sliderAnilloInterior: document.getElementById('rec-slider-anillo-interior'),
+    sliderAnilloInteriorValor: document.getElementById('rec-slider-anillo-interior-valor'),
+    sliderAnilloExterior: document.getElementById('rec-slider-anillo-exterior'),
+    sliderAnilloExteriorValor: document.getElementById('rec-slider-anillo-exterior-valor'),
+    sliderAleatorio: document.getElementById('rec-slider-aleatorio'),
+    sliderAleatorioValor: document.getElementById('rec-slider-aleatorio-valor'),
+    botonAleatorio: document.getElementById('rec-boton-aleatorio'),
   };
 }
 
@@ -237,6 +246,54 @@ export function iniciarReconstructor() {
   elementos.botonReiniciar.addEventListener('click', () => {
     if (!estado.reFourier) return;
     reiniciar(estado, N);
+    refrescarTodo(elementos, estado);
+  });
+
+  elementos.botonPasaAltos.addEventListener('click', () => {
+    if (!estado.reFourier) return;
+    aplicarPasaAltos(estado, Number(elementos.sliderRadio.value), N);
+    refrescarTodo(elementos, estado);
+  });
+
+  function sincronizarLimitesAnillo() {
+    let interior = Number(elementos.sliderAnilloInterior.value);
+    let exterior = Number(elementos.sliderAnilloExterior.value);
+
+    if (interior > exterior) {
+      interior = exterior;
+      elementos.sliderAnilloInterior.value = interior;
+    }
+
+
+    elementos.sliderAnilloInterior.max = exterior;
+    elementos.sliderAnilloExterior.min = interior;
+  }
+
+  function actualizarAnillo() {
+    if (!estado.reFourier) return;
+    aplicarAnillo(estado, Number(elementos.sliderAnilloInterior.value), Number(elementos.sliderAnilloExterior.value), N);
+    refrescarTodo(elementos, estado);
+  }
+
+  elementos.sliderAnilloInterior.addEventListener('input', () => {
+    sincronizarLimitesAnillo();
+    elementos.sliderAnilloInteriorValor.textContent = elementos.sliderAnilloInterior.value;
+    actualizarAnillo();
+  });
+  elementos.sliderAnilloExterior.addEventListener('input', () => {
+    sincronizarLimitesAnillo();
+    elementos.sliderAnilloExteriorValor.textContent = elementos.sliderAnilloExterior.value;
+    actualizarAnillo();
+  });
+
+  sincronizarLimitesAnillo();
+
+  elementos.sliderAleatorio.addEventListener('input', () => {
+    elementos.sliderAleatorioValor.textContent = elementos.sliderAleatorio.value;
+  });
+  elementos.botonAleatorio.addEventListener('click', () => {
+    if (!estado.reFourier) return;
+    aplicarAleatorio(estado, Number(elementos.sliderAleatorio.value), N);
     refrescarTodo(elementos, estado);
   });
 

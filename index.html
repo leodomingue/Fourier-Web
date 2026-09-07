@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Explorador de Fourier</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
@@ -17,6 +20,7 @@
       <button type="button" class="boton-modo" data-modo="reconstructor">Reconstructor</button>
       <button type="button" class="boton-modo" data-modo="diccionario">Diccionario de frecuencias</button>
       <button type="button" class="boton-modo" data-modo="foto-patron">Foto + patrón</button>
+      <button type="button" class="boton-modo" data-modo="lienzo">Lienzo libre</button>
     </nav>
   </header>
 
@@ -59,10 +63,31 @@
 
       <div class="panel-controles">
         <label>
-          Activar de una el centro hasta radio
-          <input type="range" id="rec-slider-radio" min="0" max="64" value="0" step="1">
-          <output id="rec-slider-radio-valor">0</output>
+            Activar de una el centro hasta radio
+            <input type="range" id="rec-slider-radio" min="0" max="64" value="0" step="1">
+            <output id="rec-slider-radio-valor">0</output>
         </label>
+
+        <button type="button" id="rec-boton-pasaaltos">Invertir (pasa-altos)</button>
+
+        <label>
+            Anillo — radio interior
+            <input type="range" id="rec-slider-anillo-interior" min="0" max="64" value="10" step="1">
+            <output id="rec-slider-anillo-interior-valor">10</output>
+        </label>
+        <label>
+            Anillo — radio exterior
+            <input type="range" id="rec-slider-anillo-exterior" min="0" max="64" value="20" step="1">
+            <output id="rec-slider-anillo-exterior-valor">20</output>
+        </label>
+
+        <label>
+            Cantidad aleatoria
+            <input type="range" id="rec-slider-aleatorio" min="1" max="800" value="100" step="1">
+            <output id="rec-slider-aleatorio-valor">100</output>
+        </label>
+        <button type="button" id="rec-boton-aleatorio">Aleatorio</button>
+
         <label>
             Grosor del pincel
             <input type="range" id="rec-slider-pincel" min="0" max="15" value="1" step="1">
@@ -73,14 +98,13 @@
 
         <button type="button" id="rec-boton-deshacer">Deshacer</button>
         <button type="button" id="rec-boton-reiniciar">Reiniciar mapa</button>
-      </div>
+        </div>
 
-      <div id="rec-tooltip" class="tooltip" hidden>
+        <div id="rec-tooltip" class="tooltip" hidden>
         <canvas id="rec-tooltip-canvas" width="80" height="80"></canvas>
         <p id="rec-tooltip-texto"></p>
-      </div>
+        </div>
     </section>
-
     <!-- ============ MODO 2: DICCIONARIO ============ -->
     <section id="modo-diccionario" class="modo" hidden>
     <p>Pasá el mouse sobre el mapa. A la derecha se arma en vivo el patrón que representa ese punto.</p>
@@ -149,6 +173,35 @@
             <output id="fp-slider-pincel-valor">1</output>
         </label>
       </div>
+    </section>
+    <section id="modo-lienzo" class="modo" hidden>
+        <p>Pintá directamente el mapa de frecuencias, sin ninguna foto de referencia. El brillo del trazo es el peso que le asignás a esa frecuencia — a la derecha se arma en vivo la imagen que resulta.</p>
+
+        <div class="grilla-canvases">
+            <div class="celda-canvas">
+            <h3>Tu mapa de frecuencias</h3>
+            <canvas id="lz-canvas-mapa" width="128" height="128"></canvas>
+            </div>
+            <div class="celda-canvas">
+            <h3>Imagen resultante</h3>
+            <canvas id="lz-canvas-resultado" width="128" height="128"></canvas>
+            </div>
+        </div>
+
+        <div class="panel-controles">
+            <label>
+            Peso del trazo
+            <input type="range" id="lz-slider-peso" min="0" max="255" value="120" step="1">
+            <output id="lz-slider-peso-valor">120</output>
+            </label>
+            <label>
+            Grosor del pincel
+            <input type="range" id="lz-slider-pincel" min="0" max="15" value="2" step="1">
+            <output id="lz-slider-pincel-valor">2</output>
+            </label>
+            <button type="button" id="lz-boton-deshacer">Deshacer</button>
+            <button type="button" id="lz-boton-reiniciar">Reiniciar</button>
+        </div>
     </section>
 
   </main>

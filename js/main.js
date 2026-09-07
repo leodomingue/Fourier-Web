@@ -1,8 +1,9 @@
 import { iniciarReconstructor } from './modes/reconstructor.js';
 import { iniciarDiccionario } from './modes/dictionary.js';
 import { iniciarFotoPatron } from './modes/photoPattern.js';
+import { iniciarLienzo } from './modes/lienzo.js';
 
-const MODOS = ['reconstructor', 'diccionario', 'foto-patron'];
+const MODOS = ['reconstructor', 'diccionario', 'foto-patron', 'lienzo'];
 
 function mostrarModo(nombreModo) {
   for (const modo of MODOS) {
@@ -22,4 +23,5 @@ document.getElementById('selector-modo').addEventListener('click', (evento) => {
 iniciarReconstructor();
 iniciarDiccionario();
 iniciarFotoPatron();
+iniciarLienzo();
 mostrarModo('reconstructor');
