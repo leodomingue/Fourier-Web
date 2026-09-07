@@ -1,10 +1,6 @@
-/* components.css — vidrio esmerilado, glow de color, movimiento suave.
-   Misma paleta ámbar/cálida que antes, look completamente renovado. */
- 
 /* ---------- Superficies base (paneles, tarjetas de canvas) ---------- */
  
 .controles-entrada,
-.panel-controles,
 .celda-canvas,
 .tooltip {
   background: var(--color-panel);
@@ -14,8 +10,51 @@
   border-radius: var(--radio-medio);
   box-shadow: var(--sombra-panel);
 }
+
+.grupo-control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  padding: var(--espacio-3) var(--espacio-4);
+  border-radius: var(--radio-chico);
+  background: var(--color-panel);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--color-panel-borde);
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.grupo-control__ayuda {
+  margin: 0;
+  font-size: 0.78rem;
+  max-width: 38ch;
+}
+
+.grupo-control__titulo {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  color: var(--color-acento);
+  text-shadow: 0 0 8px var(--color-acento-glow);
+}
+
+.grupo-control__fila {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--espacio-3);
+  flex-wrap: wrap;
+}
+
+.grupo-control--estado {
+  background: rgba(240, 168, 60, 0.06);
+  border-color: var(--color-acento-suave);
+}
+
+
  
 /* ---------- Navegación de modos ---------- */
+
+
  
 .boton-modo {
   appearance: none;

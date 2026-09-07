@@ -62,63 +62,65 @@
       </div>
 
       <div class="panel-controles">
-        <label>
-            Activar de una el centro hasta radio
-            <input type="range" id="rec-slider-radio" min="0" max="64" value="0" step="1">
-            <output id="rec-slider-radio-valor">0</output>
-        </label>
+        <div class="grupo-control">
+          <h4 class="grupo-control__titulo">Atajos rápidos</h4>
+          <p class="grupo-control__ayuda">Formas rápidas de armar un punto de partida</p>
 
-        <button type="button" id="rec-boton-pasaaltos">Invertir (pasa-altos)</button>
+          <div class="grupo-control__fila">
+            <label>
+              Pasa-bajos — radio
+              <input type="range" id="rec-slider-radio" min="0" max="64" value="0" step="1">
+              <output id="rec-slider-radio-valor">0</output>
+            </label>
+            <button type="button" id="rec-boton-pasaaltos">Invertir a pasa-altos</button>
+          </div>
 
-        <label>
-            Anillo — radio interior
-            <input type="range" id="rec-slider-anillo-interior" min="0" max="64" value="10" step="1">
-            <output id="rec-slider-anillo-interior-valor">10</output>
-        </label>
-        <label>
-            Anillo — radio exterior
-            <input type="range" id="rec-slider-anillo-exterior" min="0" max="64" value="20" step="1">
-            <output id="rec-slider-anillo-exterior-valor">20</output>
-        </label>
+          <div class="grupo-control__fila">
+            <label>
+              Puntos al azar
+              <input type="range" id="rec-slider-aleatorio" min="0" max="75" value="10" step="1">
+              <output id="rec-slider-aleatorio-valor">10%</output>
+            </label>
+            <button type="button" id="rec-boton-aleatorio">Aplicar</button>
+          </div>
+        </div>
 
-        <label>
-            Cantidad aleatoria
-            <input type="range" id="rec-slider-aleatorio" min="1" max="800" value="100" step="1">
-            <output id="rec-slider-aleatorio-valor">100</output>
-        </label>
-        <button type="button" id="rec-boton-aleatorio">Aleatorio</button>
-
-        <label>
-            Grosor del pincel
+        <div class="grupo-control">
+          <h4 class="grupo-control__titulo">Pincel manual</h4>
+          <p class="grupo-control__ayuda">Modificá el valor del grosor del pincel</p>
+          <label>
+            Grosor
             <input type="range" id="rec-slider-pincel" min="0" max="15" value="1" step="1">
             <output id="rec-slider-pincel-valor">1</output>
-        </label>
-
-        <p id="rec-contador-energia">0 de 16384 frecuencias activas — 0% de la energía capturada</p>
-
-        <button type="button" id="rec-boton-deshacer">Deshacer</button>
-        <button type="button" id="rec-boton-reiniciar">Reiniciar mapa</button>
+          </label>
         </div>
 
-        <div id="rec-tooltip" class="tooltip" hidden>
-        <canvas id="rec-tooltip-canvas" width="80" height="80"></canvas>
-        <p id="rec-tooltip-texto"></p>
+        <div class="grupo-control grupo-control--estado">
+          <h4 class="grupo-control__titulo">Estado</h4>
+          <p id="rec-contador-energia">0 de 16384 frecuencias activas — 0% de la energía capturada</p>
+          <div class="grupo-control__fila">
+            <button type="button" id="rec-boton-deshacer">Deshacer</button>
+            <button type="button" id="rec-boton-reiniciar">Reiniciar mapa</button>
+          </div>
         </div>
+      </div>
+
     </section>
+
     <!-- ============ MODO 2: DICCIONARIO ============ -->
     <section id="modo-diccionario" class="modo" hidden>
-    <p>Pasá el mouse sobre el mapa. A la derecha se arma en vivo el patrón que representa ese punto.</p>
-    <div class="grilla-diccionario-interactiva">
+      <p>Pasá el mouse sobre el mapa. A la derecha se arma en vivo el patrón que representa ese punto.</p>
+      <div class="grilla-diccionario-interactiva">
         <div class="celda-canvas">
-        <h3>Mapa de frecuencias (u, v)</h3>
-        <canvas id="dic-canvas-mapa" width="128" height="128"></canvas>
+          <h3>Mapa de frecuencias (u, v)</h3>
+          <canvas id="dic-canvas-mapa" width="128" height="128"></canvas>
         </div>
         <div class="celda-canvas">
-        <h3>Patrón de ese punto</h3>
-        <canvas id="dic-canvas-patron" width="128" height="128"></canvas>
-        <p id="dic-texto-descripcion">Centro del mapa: sin textura.</p>
+          <h3>Patrón de ese punto</h3>
+          <canvas id="dic-canvas-patron" width="128" height="128"></canvas>
+          <p id="dic-texto-descripcion">Centro del mapa: sin textura.</p>
         </div>
-    </div>
+      </div>
     </section>
 
     <!-- ============ MODO 3: FOTO + PATRÓN ============ -->
@@ -168,40 +170,42 @@
         <button type="button" id="fp-boton-quitar-patron">Quitar patrón</button>
         <button type="button" id="fp-boton-reiniciar">Reiniciar mapa</button>
         <label>
-            Grosor del pincel
-            <input type="range" id="fp-slider-pincel" min="0" max="15" value="1" step="1">
-            <output id="fp-slider-pincel-valor">1</output>
+          Grosor del pincel
+          <input type="range" id="fp-slider-pincel" min="0" max="15" value="1" step="1">
+          <output id="fp-slider-pincel-valor">1</output>
         </label>
       </div>
     </section>
+
+    <!-- ============ MODO 4: LIENZO LIBRE ============ -->
     <section id="modo-lienzo" class="modo" hidden>
-        <p>Pintá directamente el mapa de frecuencias, sin ninguna foto de referencia. El brillo del trazo es el peso que le asignás a esa frecuencia — a la derecha se arma en vivo la imagen que resulta.</p>
+      <p>Pintá directamente el mapa de frecuencias</p>
 
-        <div class="grilla-canvases">
-            <div class="celda-canvas">
-            <h3>Tu mapa de frecuencias</h3>
-            <canvas id="lz-canvas-mapa" width="128" height="128"></canvas>
-            </div>
-            <div class="celda-canvas">
-            <h3>Imagen resultante</h3>
-            <canvas id="lz-canvas-resultado" width="128" height="128"></canvas>
-            </div>
+      <div class="grilla-canvases">
+        <div class="celda-canvas">
+          <h3>Tu mapa de frecuencias</h3>
+          <canvas id="lz-canvas-mapa" width="128" height="128"></canvas>
         </div>
+        <div class="celda-canvas">
+          <h3>Imagen resultante</h3>
+          <canvas id="lz-canvas-resultado" width="128" height="128"></canvas>
+        </div>
+      </div>
 
-        <div class="panel-controles">
-            <label>
-            Peso del trazo
-            <input type="range" id="lz-slider-peso" min="0" max="255" value="120" step="1">
-            <output id="lz-slider-peso-valor">120</output>
-            </label>
-            <label>
-            Grosor del pincel
-            <input type="range" id="lz-slider-pincel" min="0" max="15" value="2" step="1">
-            <output id="lz-slider-pincel-valor">2</output>
-            </label>
-            <button type="button" id="lz-boton-deshacer">Deshacer</button>
-            <button type="button" id="lz-boton-reiniciar">Reiniciar</button>
-        </div>
+      <div class="panel-controles">
+        <label>
+          Peso del trazo
+          <input type="range" id="lz-slider-peso" min="0" max="255" value="120" step="1">
+          <output id="lz-slider-peso-valor">120</output>
+        </label>
+        <label>
+          Grosor del pincel
+          <input type="range" id="lz-slider-pincel" min="0" max="15" value="2" step="1">
+          <output id="lz-slider-pincel-valor">2</output>
+        </label>
+        <button type="button" id="lz-boton-deshacer">Deshacer</button>
+        <button type="button" id="lz-boton-reiniciar">Reiniciar</button>
+      </div>
     </section>
 
   </main>

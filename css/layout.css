@@ -1,6 +1,3 @@
-/* layout.css — disposición de las piezas. El look de cada componente
-   vive en components.css. */
- 
 body {
   padding: var(--espacio-5) var(--espacio-4);
 }
@@ -44,16 +41,15 @@ main {
  
 .grilla-canvases {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)); /* minmax(0,...) evita que el contenido "empuje" y rompa las columnas */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--espacio-4);
 }
  
 .panel-controles {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--espacio-5);
-  padding: var(--espacio-4) var(--espacio-5);
+  align-items: flex-start;
+  gap: var(--espacio-4);
 }
  
 .grilla-diccionario-interactiva {

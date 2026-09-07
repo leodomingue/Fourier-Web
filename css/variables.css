@@ -4,7 +4,7 @@
   --color-fondo: #1C1A17;
   --color-fondo-glow: radial-gradient(ellipse 900px 500px at 50% -10%, #33291A 0%, #1C1A17 60%);
  
-  --color-panel: rgba(58, 52, 42, 0.55);       /* semi-transparente: vidrio esmerilado */
+  --color-panel: rgba(58, 52, 42, 0.55);      
   --color-panel-borde: rgba(255, 255, 255, 0.08);
   --color-pantalla: #100F0C;
  
@@ -12,8 +12,8 @@
   --color-texto-tenue: #B7AC94;
  
   --color-acento: #F0A83C;
-  --color-acento-suave: rgba(240, 168, 60, 0.18);  /* halo del glow */
-  --color-acento-glow: rgba(240, 168, 60, 0.45);   /* glow más intenso (hover/focus) */
+  --color-acento-suave: rgba(240, 168, 60, 0.18); 
+  --color-acento-glow: rgba(240, 168, 60, 0.45);  
   --color-frio: #7FA095;
  
   /* ---- Tipografía ---- */
@@ -27,17 +27,14 @@
   --espacio-4: 24px;
   --espacio-5: 40px;
  
-  /* ---- Radios: grandes, "app moderna" ---- */
   --radio-chico: 10px;
   --radio-medio: 16px;
   --radio-grande: 22px;
   --radio-pill: 999px;
  
-  /* ---- Sombras: glow con color, no gris plano ---- */
   --sombra-suave: 0 8px 24px rgba(0, 0, 0, 0.35);
   --sombra-panel: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 32px rgba(0, 0, 0, 0.4);
   --sombra-pantalla: inset 0 2px 12px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
  
-  /* ---- Movimiento ---- */
   --transicion: 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }

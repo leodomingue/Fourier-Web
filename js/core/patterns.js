@@ -1,7 +1,6 @@
 // core/patterns.js 
 //  1) Genera imágenes de entrada sintéticas (rayas, tablero, círculos)
 //  2) La onda pura de una frecuencia (u,v) y su descripción en palabras,
-// usadas por el Diccionario y por el tooltip del Reconstructor.
 
 /**
  * Rayas rectas. orientacion: 'vertical' | 'horizontal' | 'diagonal'.

@@ -1,15 +1,12 @@
-// modes/lienzo.js — Modo 4: pintar el mapa de frecuencias desde cero, sin
-// ninguna foto de referencia. "Peso" = amplitud real de esa frecuencia en
-// la imagen final (0-255, ya validado con números). Fase siempre 0: pintar
-// el mismo valor real en un punto y su simétrico ya alcanza para que la
-// reconstrucción sea una imagen real, sin necesidad de manejar fase.
+// modes/lienzo.js — Modo 4: pintar el mapa de frecuencias desde cero
+
 import { fft2d } from '../core/fft.js';
 import { pintarGrises } from '../ui/canvasRenderer.js';
 import { habilitarPincel } from '../ui/controls.js';
 import { coordenadasDesdeEvento } from '../core/mascaraFourier.js';
 
 const N = 128;
-const FACTOR_ESCALA = (N * N) / 2; // "peso" (0-255, intuitivo) <-> magnitud real del coeficiente
+const FACTOR_ESCALA = (N * N) / 2;
 const HISTORIA_MAXIMA = 50;
 
 function obtenerElementos() {
@@ -135,5 +132,5 @@ export function iniciarLienzo() {
     refrescarTodo(el, estado);
   });
 
-  refrescarTodo(el, estado); // arranca todo en negro
+  refrescarTodo(el, estado);
 }

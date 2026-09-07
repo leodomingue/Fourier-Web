@@ -1,9 +1,4 @@
-
 // modes/photoPattern.js — Modo 3: foto + patrón repetitivo
-
-// Este modo permite cargar una foto y superponerle un patrón repetitivo con intensidad ajustable.
-// Luego, el usuario puede "limpiar" el patrón activando/desactivando frecuencias en el mapa de Fourier, 
-// eliminando selectivamente las componentes frecuenciales no deseadas.
 
 import { habilitarPincel } from '../ui/controls.js';
 import { prepararImagenParaFourier } from '../core/image.js';
@@ -19,6 +14,9 @@ const N = 128;
 // Tamaño de la imagen
 const TAMAÑO_IMAGEN = 128;
 
+
+const CICLOS_RAYAS = 10;
+const CELDA_TABLERO = 8;
 
 
 /**
@@ -64,9 +62,9 @@ function obtenerElementos() {
  * @returns {Float64Array} Array plano de TAMAÑO_IMAGEN*TAMAÑO_IMAGEN con valores en [0,255].
  */
 function generarPatronElegido(tipo) {
-  if (tipo === 'rayas-v') return generarRayas(N, 'vertical', 10);
-  if (tipo === 'rayas-h') return generarRayas(N, 'horizontal', 10);
-  return generarTablero(N, 8);
+  if (tipo === 'rayas-v') return generarRayas(N, 'vertical', CICLOS_RAYAS);
+  if (tipo === 'rayas-h') return generarRayas(N, 'horizontal', CICLOS_RAYAS);
+  return generarTablero(N, CELDA_TABLERO);
 }
 
 // MEZCLA DE FOTO Y PATRÓN
@@ -269,8 +267,32 @@ function frecuenciasDelPatron(tipo) {
 function quitarPatron(el, estado) {
   if (!estado.reFourier) return;
   guardarHistoria(estado);
-  for (const [u, v] of frecuenciasDelPatron(el.selectPatron.value)) {
-    pintarConPincel(estado, u + N / 2, v + N / 2, 0, 0, N);
+  for (const [uAprox, vAprox] of frecuenciasEsperadasDelPatron(el.selectPatron.value)) {
+    const pico = encontrarPicoLocal(estado, uAprox, vAprox, 2);
+    pintarConPincel(estado, pico.u + N / 2, pico.v + N / 2, 0, 0, N);
   }
   refrescarTodo(el, estado);
+}
+
+function frecuenciasEsperadasDelPatron(tipo) {
+  const fTablero = N / (2 * CELDA_TABLERO);
+  if (tipo === 'rayas-v') return [[CICLOS_RAYAS, 0]];
+  if (tipo === 'rayas-h') return [[0, CICLOS_RAYAS]];
+  return [[fTablero, fTablero], [fTablero, -fTablero]];
+}
+
+function encontrarPicoLocal(estado, uAprox, vAprox, radioBusqueda) {
+  let mejor = { u: uAprox, v: vAprox, mag: -1 };
+  for (let dv = -radioBusqueda; dv <= radioBusqueda; dv++) {
+    for (let du = -radioBusqueda; du <= radioBusqueda; du++) {
+      const u = uAprox + du;
+      const v = vAprox + dv;
+      const xRaw = ((u % N) + N) % N;
+      const yRaw = ((v % N) + N) % N;
+      const idx = yRaw * N + xRaw;
+      const mag = Math.hypot(estado.reFourier[idx], estado.imFourier[idx]);
+      if (mag > mejor.mag) mejor = { u, v, mag };
+    }
+  }
+  return mejor;
 }

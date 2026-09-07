@@ -68,10 +68,10 @@ export function iniciarDiccionario() {
     mostrarPunto(xShift, yShift, el);
   });
   el.canvasMapa.addEventListener('touchmove', (evento) => {
-    evento.preventDefault(); // que no scrollee la página mientras explorás
+    evento.preventDefault(); 
     const { xShift, yShift } = coordenadasDesdeEvento(evento.touches[0], el.canvasMapa, N);
     mostrarPunto(xShift, yShift, el);
   }, { passive: false });
 
-  mostrarPunto(N / 2, N / 2, el); // arranca mostrando el centro
+  mostrarPunto(N / 2, N / 2, el); 
 }
