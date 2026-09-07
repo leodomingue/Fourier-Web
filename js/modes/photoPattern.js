@@ -5,35 +5,17 @@ import { prepararImagenParaFourier } from '../core/image.js';
 import { desplazarEspectro } from '../core/fft.js';
 import { generarRayas, generarTablero } from '../core/patterns.js';
 import { pintarGrises, calcularEscalaLog, pintarLogEscalado } from '../ui/canvasRenderer.js';
-import {crearEstadoMascara, cargarCoeficientes, alternarFrecuencia, reconstruirDesdeMascara, 
+import {
+  crearEstadoMascara, cargarCoeficientes, alternarFrecuencia, reconstruirDesdeMascara,
   deshacer, reiniciar, coordenadasDesdeEvento, guardarHistoria, obtenerValorEnPunto, pintarConPincel,
 } from '../core/mascaraFourier.js';
 
-
 const N = 128;
-// Tamaño de la imagen
 const TAMAÑO_IMAGEN = 128;
-
 
 const CICLOS_RAYAS = 10;
 const CELDA_TABLERO = 8;
 
-
-/**
- * Obtiene referencias a todos los elementos del DOM necesarios para este modo.
- * Los nombres de las propiedades son claros y descriptivos.
- *
- * @returns {Object} Objeto con propiedades:
- *   - inputFoto: input[type=file] para cargar la foto.
- *   - selectPatron: <select> para elegir el tipo de patrón.
- *   - sliderIntensidad: <input type=range> para controlar la mezcla.
- *   - canvasOriginal: canvas para la imagen original (foto + patrón).
- *   - canvasMapaReal: canvas para el espectro de Fourier real.
- *   - canvasReconstruccion: canvas para la imagen reconstruida.
- *   - canvasMapaUsuario: canvas para el mapa de frecuencias del usuario.
- *   - botonDeshacer: <button> para deshacer cambios.
- *   - botonReiniciar: <button> para reiniciar la máscara.
- */
 function obtenerElementos() {
   return {
     inputFoto: document.getElementById('fp-input-foto'),
@@ -51,168 +33,103 @@ function obtenerElementos() {
   };
 }
 
-// GENERACIÓN DE PATRONES SINTÉTICOS
-
-
-/**
- * Genera un patrón sintético según el tipo seleccionado en el <select>.
- * Opciones: 'rayas-v' (verticales), 'rayas-h' (horizontales) o 'tablero'.
- *
- * @param {string} tipo - Tipo de patrón ('rayas-v', 'rayas-h', 'tablero').
- * @returns {Float64Array} Array plano de TAMAÑO_IMAGEN*TAMAÑO_IMAGEN con valores en [0,255].
- */
 function generarPatronElegido(tipo) {
   if (tipo === 'rayas-v') return generarRayas(N, 'vertical', CICLOS_RAYAS);
   if (tipo === 'rayas-h') return generarRayas(N, 'horizontal', CICLOS_RAYAS);
   return generarTablero(N, CELDA_TABLERO);
 }
 
-// MEZCLA DE FOTO Y PATRÓN
-
-/**
- * Mezcla la foto original con un patrón sintético según la intensidad.
- * 
- * La intensidad va de 0 a 100, pero se escala a un factor entre 0 y 0.5
- * para que el patrón no opaque completamente la foto (máximo 50% de patrón).
- *
- * @param {Float64Array} grisesFoto - Array plano con la foto en grises [0,255].
- * @param {Float64Array} patron - Array plano con el patrón sintético [0,255].
- * @param {number} intensidad0a100 - Valor del slider (0-100).
- * @returns {Float64Array} Array mezclado, recortado a [0,255].
- */
 function mezclarFotoYPatron(grisesFoto, patron, intensidad0a100) {
-  // Escala la intensidad: 0 → 0, 100 → 0.5
   const peso = (intensidad0a100 / 100) * 0.5;
   const mezcla = new Float64Array(TAMAÑO_IMAGEN * TAMAÑO_IMAGEN);
-
   for (let i = 0; i < TAMAÑO_IMAGEN * TAMAÑO_IMAGEN; i++) {
-    // Mezcla ponderada
     mezcla[i] = Math.min(255, Math.max(0, grisesFoto[i] * (1 - peso) + patron[i] * peso));
   }
   return mezcla;
 }
 
-// FUNCIONES DE ACTUALIZACIÓN DE LA VISTA
-
-/**
- * Refresca el mapa del usuario y la reconstrucción después de modificar la máscara.
- * No toca la imagen original ni el mapa real (que ya están fijos).
- *
- * @param {Object} elementos - Referencias a los canvas y elementos del DOM.
- * @param {Object} estado - Estado de la máscara (creado con crearEstadoMascara).
- * @returns {void}
- */
 function refrescarTodo(elementos, estado) {
-  // Pinta el mapa del usuario: mostrar las frecuencias activas
   const mascaraCentrada = desplazarEspectro(estado.mascara, TAMAÑO_IMAGEN);
   const logsUsuario = new Float64Array(TAMAÑO_IMAGEN * TAMAÑO_IMAGEN);
   for (let i = 0; i < TAMAÑO_IMAGEN * TAMAÑO_IMAGEN; i++) {
-    // Si la frecuencia está activa, pintamos su valor logarítmico; si no, 0 (negro)
     logsUsuario[i] = mascaraCentrada[i] ? estado.logsReal[i] : 0;
   }
   pintarLogEscalado(elementos.canvasMapaUsuario, logsUsuario, estado.maxReal, TAMAÑO_IMAGEN);
 
-  // Reconstruye y pinta la imagen con las frecuencias activas
   const imagenReconstruida = reconstruirDesdeMascara(estado, TAMAÑO_IMAGEN);
   pintarGrises(elementos.canvasReconstruccion, imagenReconstruida, TAMAÑO_IMAGEN);
 }
 
-/**
- * Carga una nueva imagen (mezcla de foto y patrón), calcula su FFT,
- * actualiza el mapa real y resetea la máscara (todas apagadas).
- *
- * @param {Float64Array} grises - Array plano de N*N valores en [0, 255].
- * @param {Object} elementos - Referencias a los elementos del DOM.
- * @param {Object} estado - Estado de la máscara.
- * @returns {void}
- */
 function actualizarDesdeGrises(grises, elementos, estado) {
-  // Pinta la imagen original (mezcla) en el canvas correspondiente
   pintarGrises(elementos.canvasOriginal, grises, TAMAÑO_IMAGEN);
-
-  //Carga los coeficientes de Fourier en el estado
   cargarCoeficientes(estado, grises, TAMAÑO_IMAGEN);
   estado.mascara.fill(1);
 
-  //Calcula la magnitud y centra para el mapa real
   const magnitudes = new Float64Array(TAMAÑO_IMAGEN * TAMAÑO_IMAGEN);
   for (let i = 0; i < TAMAÑO_IMAGEN * TAMAÑO_IMAGEN; i++) {
     magnitudes[i] = Math.hypot(estado.reFourier[i], estado.imFourier[i]);
   }
   const magnitudesCentradas = desplazarEspectro(magnitudes, TAMAÑO_IMAGEN);
 
-  //Escala logarítmica para visualización
   const { logs, max } = calcularEscalaLog(magnitudesCentradas, TAMAÑO_IMAGEN);
   estado.logsReal = logs;
   estado.maxReal = max;
-
-  //Pinta el mapa real
   pintarLogEscalado(elementos.canvasMapaReal, logs, max, TAMAÑO_IMAGEN);
 
-  // Refresca todo lo que depende de la máscara
   refrescarTodo(elementos, estado);
 }
 
-// FUNCIÓN PRINCIPAL PARA INICIAR EL MODO
 
-/**
- * Inicializa el modo Foto+Patrón:
- * - Carga una foto desde archivo.
- * - Permite elegir el tipo de patrón (rayas verticales, horizontales o tablero).
- * - Ajusta la intensidad de mezcla.
- * - Permite activar/desactivar frecuencias en el mapa para "limpiar" el patrón.
- *
- * @returns {void}
- */
+function frecuenciasEsperadasDelPatron(tipo) {
+  if (tipo === 'rayas-v') return [[CICLOS_RAYAS, 0]];
+  if (tipo === 'rayas-h') return [[0, CICLOS_RAYAS]];
+
+  const fTablero = N / (2 * CELDA_TABLERO);
+  const multiplosImpares = [1, 3, 5, 7].filter((k) => k * fTablero < N / 2);
+  const puntos = [];
+  for (const k1 of multiplosImpares) {
+    for (const k2 of multiplosImpares) {
+      puntos.push([k1 * fTablero, k2 * fTablero]);
+      puntos.push([k1 * fTablero, -k2 * fTablero]);
+    }
+  }
+  return puntos;
+}
+
+
+function quitarPatron(elementos, estado) {
+  if (!estado.reFourier) return;
+  guardarHistoria(estado);
+  const RADIO_LIMPIEZA = 0;
+  for (const [u, v] of frecuenciasEsperadasDelPatron(elementos.selectPatron.value)) {
+    pintarConPincel(estado, u + N / 2, v + N / 2, RADIO_LIMPIEZA, 0, N);
+  }
+  refrescarTodo(elementos, estado);
+}
+
 export function iniciarFotoPatron() {
-  //Obteniene referencias a los elementos del DOM con nombres descriptivos
   const elementos = obtenerElementos();
-
-  //Crea el estado de la máscara (inicialmente vacío)
   const estado = crearEstadoMascara(TAMAÑO_IMAGEN);
-
-  // Variable para guardar la última foto cargada
   let ultimaFotoGrises = null;
 
-  // FUNCIÓN INTERNA: recalcula la entrada y actualiza todo
-  /**
-   * Recalcula la mezcla de la foto con el patrón actual y actualiza la vista.
-   * Se ejecuta cuando se cambia el tipo de patrón, la intensidad o se carga una foto.
-   */
   function recalcularEntrada() {
-    if (!ultimaFotoGrises) return; // Aún no hay foto cargada
-
-    //Genera el patrón según el <select>
+    if (!ultimaFotoGrises) return;
     const patron = generarPatronElegido(elementos.selectPatron.value);
-
-    //Mezcla foto y patrón con la intensidad actual del slider
     const intensidad = Number(elementos.sliderIntensidad.value);
     const mezcla = mezclarFotoYPatron(ultimaFotoGrises, patron, intensidad);
-
-    //Actualiza toda la vista con la imagen mezclada
     actualizarDesdeGrises(mezcla, elementos, estado);
   }
 
-
-  //Evento: cargar foto desde archivo
   elementos.inputFoto.addEventListener('change', async (evento) => {
     const archivo = evento.target.files[0];
     if (!archivo) return;
-
-    // Convierte la imagen a grises y redimensiona a TAMAÑO_IMAGEN×TAMAÑO_IMAGEN
     ultimaFotoGrises = await prepararImagenParaFourier(archivo, TAMAÑO_IMAGEN);
-
-    //Recalcula la entrada (mezcla) con los valores actuales de patrón e intensidad
     recalcularEntrada();
   });
 
-  //Evento: cambio de tipo de patrón en el <select>
   elementos.selectPatron.addEventListener('change', recalcularEntrada);
-
-  //Evento: cambio de intensidad en el slider
   elementos.sliderIntensidad.addEventListener('input', recalcularEntrada);
 
-  // Evento: clic en el mapa del usuario para alternar frecuencias 
   let valorTrazoActual = 1;
   let esInicioDeTrazo = true;
 
@@ -240,59 +157,15 @@ export function iniciarFotoPatron() {
     elementos.sliderPincelValor.textContent = elementos.sliderPincel.value;
   });
 
-  //Evento: botón Deshacer
   elementos.botonDeshacer.addEventListener('click', () => {
-    if (deshacer(estado)) {
-      refrescarTodo(elementos, estado);
-    }
+    if (deshacer(estado)) refrescarTodo(elementos, estado);
   });
 
   elementos.botonQuitarPatron.addEventListener('click', () => quitarPatron(elementos, estado));
 
-  //Evento: botón Reiniciar (apagar todas las frecuencias)
   elementos.botonReiniciar.addEventListener('click', () => {
     if (!estado.reFourier) return;
     reiniciar(estado, TAMAÑO_IMAGEN);
     refrescarTodo(elementos, estado);
   });
-
-}
-
-function frecuenciasDelPatron(tipo) {
-  if (tipo === 'rayas-v') return [[10, 0]];
-  if (tipo === 'rayas-h') return [[0, 10]];
-  return [[8, 8], [8, -8]]; 
-}
-
-function quitarPatron(el, estado) {
-  if (!estado.reFourier) return;
-  guardarHistoria(estado);
-  for (const [uAprox, vAprox] of frecuenciasEsperadasDelPatron(el.selectPatron.value)) {
-    const pico = encontrarPicoLocal(estado, uAprox, vAprox, 2);
-    pintarConPincel(estado, pico.u + N / 2, pico.v + N / 2, 0, 0, N);
-  }
-  refrescarTodo(el, estado);
-}
-
-function frecuenciasEsperadasDelPatron(tipo) {
-  const fTablero = N / (2 * CELDA_TABLERO);
-  if (tipo === 'rayas-v') return [[CICLOS_RAYAS, 0]];
-  if (tipo === 'rayas-h') return [[0, CICLOS_RAYAS]];
-  return [[fTablero, fTablero], [fTablero, -fTablero]];
-}
-
-function encontrarPicoLocal(estado, uAprox, vAprox, radioBusqueda) {
-  let mejor = { u: uAprox, v: vAprox, mag: -1 };
-  for (let dv = -radioBusqueda; dv <= radioBusqueda; dv++) {
-    for (let du = -radioBusqueda; du <= radioBusqueda; du++) {
-      const u = uAprox + du;
-      const v = vAprox + dv;
-      const xRaw = ((u % N) + N) % N;
-      const yRaw = ((v % N) + N) % N;
-      const idx = yRaw * N + xRaw;
-      const mag = Math.hypot(estado.reFourier[idx], estado.imFourier[idx]);
-      if (mag > mejor.mag) mejor = { u, v, mag };
-    }
-  }
-  return mejor;
 }
