@@ -67,15 +67,10 @@ export function cargarCoeficientes(estado, grises, N) {
  * @param {Object} estado - El estado de la máscara.
  * @returns {void}
  */
-function guardarHistoria(estado) {
-  // Almacena una copia profunda de la máscara actual
+export function guardarHistoria(estado) {
   estado.historia.push(estado.mascara.slice());
-  // Si excedemos el límite, eliminamos la entrada más antigua
-  if (estado.historia.length > HISTORIA_MAXIMA) {
-    estado.historia.shift();
-  }
+  if (estado.historia.length > HISTORIA_MAXIMA) estado.historia.shift();
 }
-
 /**
  * Deshace la última operación sobre la máscara, restaurando el estado anterior.
  *
@@ -258,4 +253,29 @@ export function coordenadasDesdeEvento(evento, canvas, N) {
     xShift: Math.min(N - 1, Math.max(0, xShift)),
     yShift: Math.min(N - 1, Math.max(0, yShift)),
   };
+}
+
+export function obtenerValorEnPunto(estado, xShift, yShift, N) {
+  const { xRaw, yRaw } = shiftedARaw(xShift, yShift, N);
+  return estado.mascara[yRaw * N + xRaw];
+}
+
+export function pintarConPincel(estado, xShift, yShift, radio, valor, N) {
+  const r2 = radio * radio;
+  const xMin = Math.max(0, Math.floor(xShift - radio));
+  const xMax = Math.min(N - 1, Math.ceil(xShift + radio));
+  const yMin = Math.max(0, Math.floor(yShift - radio));
+  const yMax = Math.min(N - 1, Math.ceil(yShift + radio));
+
+  for (let ys = yMin; ys <= yMax; ys++) {
+    for (let xs = xMin; xs <= xMax; xs++) {
+      const dx = xs - xShift, dy = ys - yShift;
+      if (dx * dx + dy * dy > r2) continue;
+      const { xRaw, yRaw } = shiftedARaw(xs, ys, N);
+      const indice = yRaw * N + xRaw;
+      const indiceSimetrico = ((N - yRaw) % N) * N + ((N - xRaw) % N);
+      estado.mascara[indice] = valor;
+      estado.mascara[indiceSimetrico] = valor;
+    }
+  }
 }

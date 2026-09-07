@@ -63,6 +63,11 @@
           <input type="range" id="rec-slider-radio" min="0" max="64" value="0" step="1">
           <output id="rec-slider-radio-valor">0</output>
         </label>
+        <label>
+            Grosor del pincel
+            <input type="range" id="rec-slider-pincel" min="0" max="15" value="1" step="1">
+            <output id="rec-slider-pincel-valor">1</output>
+        </label>
 
         <p id="rec-contador-energia">0 de 16384 frecuencias activas — 0% de la energía capturada</p>
 
@@ -78,7 +83,7 @@
 
     <!-- ============ MODO 2: DICCIONARIO ============ -->
     <section id="modo-diccionario" class="modo" hidden>
-    <p>Pasá el mouse (o tocá, en el celular) sobre el mapa. A la derecha se arma en vivo el patrón que representa ese punto.</p>
+    <p>Pasá el mouse sobre el mapa. A la derecha se arma en vivo el patrón que representa ese punto.</p>
     <div class="grilla-diccionario-interactiva">
         <div class="celda-canvas">
         <h3>Mapa de frecuencias (u, v)</h3>
@@ -136,7 +141,13 @@
 
       <div class="panel-controles">
         <button type="button" id="fp-boton-deshacer">Deshacer</button>
+        <button type="button" id="fp-boton-quitar-patron">Quitar patrón</button>
         <button type="button" id="fp-boton-reiniciar">Reiniciar mapa</button>
+        <label>
+            Grosor del pincel
+            <input type="range" id="fp-slider-pincel" min="0" max="15" value="1" step="1">
+            <output id="fp-slider-pincel-valor">1</output>
+        </label>
       </div>
     </section>
 

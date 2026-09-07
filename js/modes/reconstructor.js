@@ -5,14 +5,15 @@
 // - Interacción: click para activar/desactivar frecuencias
 // - Reconstrucción en vivo de la imagen a partir de frecuencias seleccionadas
 // - Contador de energía, deshacer/reiniciar, tooltip con la onda pura
-
+import { habilitarPincel } from '../ui/controls.js';
 import { prepararImagenParaFourier } from '../core/image.js';
 import { fft2d, desplazarEspectro } from '../core/fft.js';
 import {generarRayas, generarTablero, generarCirculos, generarPatronDeFrecuencia, describirFrecuencia} from '../core/patterns.js';
 import {pintarGrises, pintarGrisesEscalado, calcularEscalaLog, pintarLogEscalado} from '../ui/canvasRenderer.js';
 import { mostrarTooltip, ocultarTooltip } from '../ui/tooltip.js';
 import {crearEstadoMascara, cargarCoeficientes,alternarFrecuencia, aplicarRadio, reconstruirDesdeMascara,
-  calcularContador, deshacer, reiniciar, coordenadasDesdeEvento} from '../core/mascaraFourier.js';
+  calcularContador, deshacer, reiniciar, coordenadasDesdeEvento, guardarHistoria, obtenerValorEnPunto, pintarConPincel} 
+  from '../core/mascaraFourier.js';
 
 
 // Tamaño de la imagen (potencia de 2 para la FFT)
@@ -53,6 +54,8 @@ function obtenerElementos() {
     tooltip: document.getElementById('rec-tooltip'),
     tooltipCanvas: document.getElementById('rec-tooltip-canvas'),
     tooltipTexto: document.getElementById('rec-tooltip-texto'),
+    sliderPincel: document.getElementById('rec-slider-pincel'),
+    sliderPincelValor: document.getElementById('rec-slider-pincel-valor'),
   };
 }
 
@@ -187,12 +190,31 @@ export function iniciarReconstructor() {
     actualizarDesdeGrises(generarCirculos(N, 6), elementos, estado)
   );
 
-  //Evento: clic en el mapa del usuario para alternar frecuencias
-  elementos.canvasMapaUsuario.addEventListener('click', (evento) => {
-    if (!estado.reFourier) return; // Aún no hay imagen cargada
-    const { xShift, yShift } = coordenadasDesdeEvento(evento, elementos.canvasMapaUsuario, N);
-    alternarFrecuencia(estado, xShift, yShift, N);
-    refrescarTodo(elementos, estado);
+  let valorTrazoActual = 1;
+  let esInicioDeTrazo = true;
+
+  habilitarPincel(
+    elementos.canvasMapaUsuario,
+    () => {
+      if (!estado.reFourier) return;
+      guardarHistoria(estado);
+      esInicioDeTrazo = true;
+    },
+    (puntero) => {
+      if (!estado.reFourier) return;
+      const { xShift, yShift } = coordenadasDesdeEvento(puntero, elementos.canvasMapaUsuario, N);
+      if (esInicioDeTrazo) {
+        valorTrazoActual = obtenerValorEnPunto(estado, xShift, yShift, N) ? 0 : 1;
+        esInicioDeTrazo = false;
+      }
+      const radio = Number(elementos.sliderPincel.value);
+      pintarConPincel(estado, xShift, yShift, radio, valorTrazoActual, N);
+      refrescarTodo(elementos, estado);
+    }
+  );
+
+  elementos.sliderPincel.addEventListener('input', () => {
+    elementos.sliderPincelValor.textContent = elementos.sliderPincel.value;
   });
 
   // Evento: slider de radio circular

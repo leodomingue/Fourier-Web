@@ -5,16 +5,17 @@
 // Luego, el usuario puede "limpiar" el patrón activando/desactivando frecuencias en el mapa de Fourier, 
 // eliminando selectivamente las componentes frecuenciales no deseadas.
 
-
+import { habilitarPincel } from '../ui/controls.js';
 import { prepararImagenParaFourier } from '../core/image.js';
 import { desplazarEspectro } from '../core/fft.js';
 import { generarRayas, generarTablero } from '../core/patterns.js';
 import { pintarGrises, calcularEscalaLog, pintarLogEscalado } from '../ui/canvasRenderer.js';
-import {crearEstadoMascara, cargarCoeficientes, alternarFrecuencia, reconstruirDesdeMascara,
-  deshacer, reiniciar, coordenadasDesdeEvento} from '../core/mascaraFourier.js';
+import {crearEstadoMascara, cargarCoeficientes, alternarFrecuencia, reconstruirDesdeMascara, 
+  deshacer, reiniciar, coordenadasDesdeEvento, guardarHistoria, obtenerValorEnPunto, pintarConPincel,
+} from '../core/mascaraFourier.js';
 
 
-
+const N = 128;
 // Tamaño de la imagen
 const TAMAÑO_IMAGEN = 128;
 
@@ -46,6 +47,9 @@ function obtenerElementos() {
     canvasMapaUsuario: document.getElementById('fp-canvas-mapa-usuario'),
     botonDeshacer: document.getElementById('fp-boton-deshacer'),
     botonReiniciar: document.getElementById('fp-boton-reiniciar'),
+    sliderPincel: document.getElementById('fp-slider-pincel'),
+    sliderPincelValor: document.getElementById('fp-slider-pincel-valor'),
+    botonQuitarPatron: document.getElementById('fp-boton-quitar-patron'),
   };
 }
 
@@ -60,13 +64,9 @@ function obtenerElementos() {
  * @returns {Float64Array} Array plano de TAMAÑO_IMAGEN*TAMAÑO_IMAGEN con valores en [0,255].
  */
 function generarPatronElegido(tipo) {
-  if (tipo === 'rayas-v') {
-    return generarRayas(TAMAÑO_IMAGEN, 'vertical', 10);
-  }
-  if (tipo === 'rayas-h') {
-    return generarRayas(TAMAÑO_IMAGEN, 'horizontal', 10);
-  }
-  return generarTablero(TAMAÑO_IMAGEN, 12);
+  if (tipo === 'rayas-v') return generarRayas(N, 'vertical', 10);
+  if (tipo === 'rayas-h') return generarRayas(N, 'horizontal', 10);
+  return generarTablero(N, 8);
 }
 
 // MEZCLA DE FOTO Y PATRÓN
@@ -134,6 +134,7 @@ function actualizarDesdeGrises(grises, elementos, estado) {
 
   //Carga los coeficientes de Fourier en el estado
   cargarCoeficientes(estado, grises, TAMAÑO_IMAGEN);
+  estado.mascara.fill(1);
 
   //Calcula la magnitud y centra para el mapa real
   const magnitudes = new Float64Array(TAMAÑO_IMAGEN * TAMAÑO_IMAGEN);
@@ -214,21 +215,31 @@ export function iniciarFotoPatron() {
   elementos.sliderIntensidad.addEventListener('input', recalcularEntrada);
 
   // Evento: clic en el mapa del usuario para alternar frecuencias 
-  elementos.canvasMapaUsuario.addEventListener('click', (evento) => {
-    if (!estado.reFourier) return; 
+  let valorTrazoActual = 1;
+  let esInicioDeTrazo = true;
 
+  habilitarPincel(
+    elementos.canvasMapaUsuario,
+    () => {
+      if (!estado.reFourier) return;
+      guardarHistoria(estado);
+      esInicioDeTrazo = true;
+    },
+    (puntero) => {
+      if (!estado.reFourier) return;
+      const { xShift, yShift } = coordenadasDesdeEvento(puntero, elementos.canvasMapaUsuario, N);
+      if (esInicioDeTrazo) {
+        valorTrazoActual = obtenerValorEnPunto(estado, xShift, yShift, N) ? 0 : 1;
+        esInicioDeTrazo = false;
+      }
+      const radio = Number(elementos.sliderPincel.value);
+      pintarConPincel(estado, xShift, yShift, radio, valorTrazoActual, N);
+      refrescarTodo(elementos, estado);
+    }
+  );
 
-    const { xShift, yShift } = coordenadasDesdeEvento(
-      evento,
-      elementos.canvasMapaUsuario,
-      TAMAÑO_IMAGEN
-    );
-
-    // Alterna la frecuencia (encender/apagar) en la máscara
-    alternarFrecuencia(estado, xShift, yShift, TAMAÑO_IMAGEN);
-
-    // Refresca la vista (mapa usuario y reconstrucción)
-    refrescarTodo(elementos, estado);
+  elementos.sliderPincel.addEventListener('input', () => {
+    elementos.sliderPincelValor.textContent = elementos.sliderPincel.value;
   });
 
   //Evento: botón Deshacer
@@ -238,6 +249,8 @@ export function iniciarFotoPatron() {
     }
   });
 
+  elementos.botonQuitarPatron.addEventListener('click', () => quitarPatron(elementos, estado));
+
   //Evento: botón Reiniciar (apagar todas las frecuencias)
   elementos.botonReiniciar.addEventListener('click', () => {
     if (!estado.reFourier) return;
@@ -245,4 +258,19 @@ export function iniciarFotoPatron() {
     refrescarTodo(elementos, estado);
   });
 
+}
+
+function frecuenciasDelPatron(tipo) {
+  if (tipo === 'rayas-v') return [[10, 0]];
+  if (tipo === 'rayas-h') return [[0, 10]];
+  return [[8, 8], [8, -8]]; 
+}
+
+function quitarPatron(el, estado) {
+  if (!estado.reFourier) return;
+  guardarHistoria(estado);
+  for (const [u, v] of frecuenciasDelPatron(el.selectPatron.value)) {
+    pintarConPincel(estado, u + N / 2, v + N / 2, 0, 0, N);
+  }
+  refrescarTodo(el, estado);
 }
